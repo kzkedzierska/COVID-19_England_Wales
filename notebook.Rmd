@@ -1,5 +1,6 @@
 ---
 title: "COVID-19 mortality in England and Wales"
+subtitle: "ONS data up to 27/03/2020"
 author: Kasia Kedzierska
 output:
   html_document:
@@ -14,21 +15,26 @@ output:
 ---
 ## Motivation
 
-As probably many of the data scientist I wanted to ease my anxiety caused by the COVID-19, and  for some reason analysing COVID-19 data is doing that job. I am a **computational biologists** and all the plots I am making here are just *observations*. I am not claiming any conclusions, nor do I do any predictions. All the code is open source, and free for anyone to use, available on [github]()
+As probably many of the data scientist I wanted to ease my anxiety caused by the COVID-19, and  for some reason analysing COVID-19 data is doing that job. I am a **computational biologists** and all the plots I am making here are just *observations*. I am not claiming any conclusions, nor do I do any predictions. All the code is open source, and free for anyone to use, available on [github](https://github.com/kzkedzierska/COVID-19_England_Wales).
 
 ## Setup 
 
+
+
 Loading up the necessary packages (installing them if they are missing). Setting up defaults and tweaking the plotting defaults.
+
 ```{r, warning=FALSE, error=FALSE, message=FALSE}
 # Load packages
-cran_pkgs <- c("tidyverse", "ggsci", "patchwork", "readxl")
+cran_pkgs <- c("tidyverse", "ggsci", "patchwork", "readxl", "knitr", "ggforce")
 source("./scripts/load_pkgs.R")
 load_packages(cran_pkgs = cran_pkgs)
 
 # Set defaults for plotting
 theme_set(theme_bw() + theme(legend.position = "bottom"))
-```
 
+# Don't print warnings
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+```
 ## Data 
 
 Data is coming from [Office for National Statistics, *Deaths registered weekly in England and Wales, provisional* dataset](https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/deaths/datasets/weeklyprovisionalfiguresondeathsregisteredinenglandandwales). For now I am downloading the data manually into the `data` directory. It would be great to download it directly.
@@ -62,6 +68,7 @@ df_2020_ <-
   pivot_longer(names_to = "week", 
                values_to = "number_of_deaths", 
                -c(value, value2))
+
 df_2020 <- 
   df_2020_ %>% 
   select(-value2) %>%
@@ -78,9 +85,9 @@ df_all <- bind_rows(list(df_2019, df_2020)) %>%
 
 ### COVID-19 specific datasets
 
-*Note:* Total number of deaths in `Covid-19 - Place of occurence` sheet is off by a factor of 10.
+*Note:* Total number of deaths in `Covid-19 - Place of occurence` sheet is off by a factor of 10 in the data published on 7th of April.
 
-```{r, warning=FALSE, message=FALSE}
+```{r}
 place_of_death <- 
   read_xlsx(current_2020_spreadsheet, 
             sheet = sheets_2020[9], skip = 4)[1:7,1:3] %>%
@@ -99,22 +106,45 @@ actual_vs_reported <-
   pivot_longer(names_to = "source",
                values_to = "number_of_deaths",
                -Date)
+
+age_distribution <- 
+  read_xlsx(current_2020_spreadsheet, sheet = sheets_2020[6], 
+            skip = 4)[c(7:13,16:22,25:31), -1] %>%
+  mutate(sex = c(rep("Both", 7), rep("Males", 7), rep("Females", 7))) %>%
+  rename(age_group = `...2`) %>%
+  mutate_at(vars(-age_group, -sex), as.numeric) %>%
+  pivot_longer(names_to = "week",
+               values_to = "number_of_deaths",
+               cols = -c(age_group, sex)) %>%
+  group_by(sex, week) %>%
+  filter(sum(number_of_deaths) > 0)
+
+age_levels <- age_distribution$age_group %>% unique()
+age_distribution <-
+  age_distribution %>%
+  ungroup() %>%
+  mutate(week = as.numeric(week), 
+         week_ = lubridate::ymd("2020-01-03") + 7 * (week-1)) %>%
+  mutate(age_group = factor(age_group, levels = age_levels))
 ```
+
 
 ## Mortality in the context of past years
 
-### Tota
+### All weekly deaths in England and Wales
 
 Still very early, but looks like the overall weekly numbers are higher than last year, and the past 5 years.
 
-```{r}
+```{r, fig.height=8, fig.width=7}
 total <- 
   df_all %>%
   filter(value == "total_deaths") %>%
   ggplot(aes(x = week_, y = number_of_deaths, fill = year)) +
   geom_bar(stat = "identity", position = "dodge") +
   geom_smooth(data = filter(df_all, value == "total_deaths_ave5" & year == "2019"),
-              color = "grey60") +
+              color = "grey60", se = FALSE) +
+  facet_zoom(xy = week_ < lubridate::ymd("2020-03-28"), 
+             horizontal = FALSE, show.area = FALSE) +
   labs(y = "Number of deaths", 
        title = "Weekly total deaths [grey = 5 year average]") + 
   theme(axis.title.x = element_blank()) +
@@ -126,36 +156,43 @@ total
 
 COVID-19 deaths are increasing the number of repiratory deaths. 
 
-```{r}
+```{r, fig.height=8, fig.width=7}
 respiratory <-
   df_all %>%
   filter(value == "respiratory_deaths") %>%
   ggplot(aes(x = week_, y = number_of_deaths, 
              group = year, color = year, shape = year)) +
   geom_point() +
-  geom_smooth() +
+  geom_smooth(se = FALSE) +
+  facet_zoom(xy = week_ < lubridate::ymd("2020-03-28"), 
+             horizontal = FALSE, show.area = FALSE) +
   scale_color_aaas() +
   labs(y = "Number of deaths", title = "Weekly respiratory deaths") + 
-  theme(axis.title.x = element_blank())
+  theme(axis.title.x = element_blank()) +
+  coord_cartesian(ylim = c(0, 2510))
 respiratory
 ```
 
 However, the difference is not yet visible on the cummulative scale. 
 
-```{r}
-cummulative_respiratory <- 
+```{r, fig.height=8, fig.width=7}
+cumulative_respiratory <- 
   df_all %>%
   arrange(week) %>%
   group_by(value, year) %>%
   mutate(cum = cumsum(number_of_deaths)) %>%
   filter(value == "respiratory_deaths") %>%
+  ungroup() %>% 
   ggplot(aes(x = week_, y = cum, color = year, shape = year)) +
   geom_point() +
-  geom_smooth() +
+  geom_smooth(se = FALSE) +
+  facet_zoom(xy = week_ < lubridate::ymd("2020-03-28"), 
+             horizontal = FALSE, show.area = FALSE) +
   scale_color_aaas() +
-  labs(y = "Number of deaths", title = "Cummulative respiratory deaths") + 
-  theme(axis.title.x = element_blank())
-cummulative_respiratory
+  labs(y = "Number of deaths", shape = "Year",
+       color = "Year", title = "Cumulative respiratory deaths") + 
+  theme(axis.title.x = element_blank()) 
+cumulative_respiratory
 ```
 
 COVID-19 deaths increase exponentailly, while the other respiratory deths seem to be stable.
@@ -169,15 +206,15 @@ df_2020_ %>%
   filter(!is.na(number_of_deaths)) %>%
   ggplot(aes(x = week_, y = number_of_deaths, color = value2, shape = value2)) +
   geom_point() +
-  geom_smooth() +
+  geom_smooth(se = FALSE) +
   scale_color_uchicago() +
   labs(y = "Number of deaths", title = "Weekly respiratory deaths",
        color = "Cause of death", shape = "Cause of death") + 
   theme(axis.title.x = element_blank(), legend.position = "bottom")
 ```
 
-```{r, fig.width=7, fig.height=12, echo=FALSE}
-total / respiratory / cummulative_respiratory + plot_layout(guides = "collect")
+```{r, fig.width=7, fig.height=12, eval=FALSE}
+total / respiratory / cumulative_respiratory + plot_layout(guides = "collect")
 ggsave("./plots/up_to200327.png")
 ```
 
@@ -201,32 +238,46 @@ place_of_death %>%
   geom_bar(stat = "identity", position = "dodge") +
   scale_fill_nejm() +
   labs(title = "Place of death",
-       y = "Fraction ofreported deaths",
+       y = "Fraction of reported deaths",
        fill = "Cause of death:") +
   theme(axis.title.x = element_blank(), text = element_text(size = 16))
 ```
 
 ### Discrepancies between  reported numbers
 
-The numbers reported by the government are lower than the actual number of deaths each day. Some of that comes from the delay in confirming the cause of death.  
+The numbers reported by the government are lower than the actual number of deaths each day. Some of that comes from the delay in confirming the cause of death. It might be the case that the `Place of death` plot will change as the data will be updated. 
 
-```{r, fig.width=13}
-col_scheme <- c("#E18727", "#20854E", "#008B6C", "#009093")
+All the comparisons between previous years (in the earlier parts of this notebook) are done based on figures from `ONS deaths by date of registration – registered by 27th March` set for compatibility with earlier datasets.
+
+```{r, fig.width=13, fig.height=7}
+col_scheme <- c("#E18727", "#849460", "#56603F", "#20854E")
+                #"#20854E", "#008B6C", "#009093")
 names(col_scheme) <- unique(actual_vs_reported$source)
+
+label_postions <- 
+  actual_vs_reported %>% 
+  filter(Date == lubridate::ymd("2020/03/5")) %>%
+  arrange(number_of_deaths) %>%
+  mutate(fixed_position_cum = 1000 + 100 * 1:4,
+         fixed_position_daily = 150 + 15 * 1:4)
+
 discrepancies <-
   actual_vs_reported %>%
   ggplot(aes(x = Date, y = number_of_deaths, color = source, shape = source)) +
   geom_smooth(se = FALSE) +
   geom_point(color = "black") +
+  geom_text(data = label_postions, size = 7, hjust = 0,
+            aes(x = Date, y = fixed_position_cum, label = source)) +
+  #scale_color_nejm() +
   scale_color_manual(values = col_scheme) +
   guides(color = guide_legend(nrow = 2, byrow = TRUE))+
   labs(color = "Source", shape = "Source", 
-       y = "Cummulative number of deaths") +
-  theme(axis.title.x = element_blank(), text = element_text(size = 16)) 
+       y = "Cumulative number of deaths") +
+  theme(axis.title.x = element_blank(), text = element_text(size = 16),
+        legend.position = "none") 
 
 discrepancies + 
   labs(title = "Discrepancies between the reported numbers of COVID-19 deaths in England and Wales")
-
 # (discrepancies + theme(legend.position = "none") + labs(title = "[linear scale]")) / 
 #   (discrepancies + scale_y_log10() + labs(title = "[log scale]")) + 
 #   plot_annotation(title =  "Discrepancies between the reported numbers")
@@ -234,7 +285,7 @@ discrepancies +
 
 Looking at the daily death rates it becomes clear that there is a significant lag in the data.
 
-```{r, fig.width=13}
+```{r, fig.width=13, fig.height=7}
 actual_vs_reported %>%
   group_by(source) %>%
   arrange(Date) %>%
@@ -242,16 +293,48 @@ actual_vs_reported %>%
   ggplot(aes(x = Date, y = deaths_on_that_day, color = source, shape = source)) +
   geom_smooth(se = FALSE) +
   geom_point(color = "black") +
+  geom_text(data = label_postions, size = 7, hjust = 0,
+            aes(x = Date, y = fixed_position_daily, label = source)) +
   scale_color_manual(values = col_scheme) +
   guides(color = guide_legend(nrow = 2, byrow = TRUE))+
   labs(color = "Source", shape = "Source", 
        y = "Number of deaths on the day") +
-  theme(axis.title.x = element_blank(), text = element_text(size = 16)) 
+  theme(axis.title.x = element_blank(), legend.position = "none",
+        text = element_text(size = 16)) 
   
 ```
 
 
 
+### Age distribution
+
+There is more deaths in among Males than Females. I
+
+```{r}
+max_axis <- 
+  age_distribution %>%
+  filter(sex != "Both") %>%
+  pull(number_of_deaths) %>%
+  max()
+max_axis <- round(max_axis / 100, 0) * 100 + 25
+
+age_distribution %>%
+  mutate(age_group = factor(age_group, levels = rev(age_levels))) %>%
+  filter(week == max(week), sex != "Both") %>%
+  mutate(nod = ifelse(sex == "Females", number_of_deaths, -number_of_deaths)) %>%
+  group_by(age_group) %>%
+  filter(sum(number_of_deaths) > 0) %>%
+  ggplot(aes(x = age_group, y = nod, fill = sex)) +
+  geom_bar(stat = "identity") +
+  scale_fill_npg() +
+  scale_y_continuous(breaks = seq(-max_axis, max_axis, 25),
+                     labels = abs(seq(-max_axis, max_axis, 25))) +
+  labs(x = "Age groups",
+       y = "Cumulative number of deaths", fill = "Sex") +
+  coord_flip() +
+  theme(legend.position = "right")
+
+```
 
 
 
