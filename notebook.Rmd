@@ -13,15 +13,18 @@ output:
       smooth_scroll: false
     toc_depth: 3
 ---
-## Motivation
 
-As probably many of the data scientist I wanted to ease my anxiety caused by the COVID-19, and  for some reason analysing COVID-19 data is doing that job. I am a **computational biologists** and all the plots I am making here are just *observations*. I am not claiming any conclusions, nor do I do any predictions. All the code is open source, and free for anyone to use, available on [github](https://github.com/kzkedzierska/COVID-19_England_Wales).
+## Disclaimer
+As probably many of the data scientist I wanted to ease my anxiety caused by the COVID-19, and for some reason analysing COVID-19 data is doing that job. I am a **computational biologists** and all the plots I am making here are just *observations*. I am not claiming any conclusions, nor do I do any predictions. All the code is open source, and free for anyone to use, available on [github](https://github.com/kzkedzierska/COVID-19_England_Wales).
 
 Also, very warm thanks to [Kaspar](https://kasparmartens.rbind.io/) for his help with decisions regarding color schemes and his pointers.
 
+## Motivation
+I decided to look into the mortality rates because I wanted to put the numbers reported by the government in some context. My first question was whether the deaths reported as COVID-19 deaths were a subset of deaths one could expect to see this year? How much COVID-19 increases the death toll? And finally, how does the age distribution of fatalities look?
+
+The data I plotted below shades a bit of light on those topics, but for a more in-depth answer, I am afraid we will have to wait for long. Nevertheless, I still think the following is quite interesting. If not for others, then for the sole reason of looking at the data in almost real-time.
+
 ## Setup 
-
-
 
 Loading up the necessary packages (installing them if they are missing). Setting up defaults and tweaking the plotting defaults.
 
@@ -313,7 +316,7 @@ actual_vs_reported %>%
 
 ### Age distribution
 
-There is more deaths among Males than Females. 
+There is more deaths among Males than Females. There were no deaths in the age groups not shown at the time. 
 
 ```{r}
 max_axis <- 
