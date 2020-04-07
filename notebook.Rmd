@@ -17,6 +17,8 @@ output:
 
 As probably many of the data scientist I wanted to ease my anxiety caused by the COVID-19, and  for some reason analysing COVID-19 data is doing that job. I am a **computational biologists** and all the plots I am making here are just *observations*. I am not claiming any conclusions, nor do I do any predictions. All the code is open source, and free for anyone to use, available on [github](https://github.com/kzkedzierska/COVID-19_England_Wales).
 
+Also, very warm thanks to [Kaspar](https://kasparmartens.rbind.io/) for his help with decisions regarding color schemes and his pointers.
+
 ## Setup 
 
 
