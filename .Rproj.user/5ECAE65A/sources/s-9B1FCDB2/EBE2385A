@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1586257203221.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "EBE2385A",
+    "lastKnownWriteTime" : 93854628765880,
+    "last_content_update" : 1586257203221,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "8C27E841",
+        "caption" : "df_2020_",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=df_2020_&cache_key=8C27E841",
+        "displayedObservations" : 212,
+        "environment" : "",
+        "expression" : "df_2020_",
+        "object" : "df_2020_",
+        "preview" : 0,
+        "totalObservations" : 212,
+        "variables" : 4
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1586259556119.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "8C4DFBFD",
+    "lastKnownWriteTime" : 1586259635,
+    "last_content_update" : 1586259635235,
+    "path" : "~/github/COVID-19_England_Wales/scripts/load_pkgs.R",
+    "project_path" : "scripts/load_pkgs.R",
+    "properties" : {
+        "cursorPosition" : "5,24",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
