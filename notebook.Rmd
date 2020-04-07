@@ -27,7 +27,8 @@ Loading up the necessary packages (installing them if they are missing). Setting
 
 ```{r, warning=FALSE, error=FALSE, message=FALSE}
 # Load packages
-cran_pkgs <- c("tidyverse", "ggsci", "patchwork", "readxl", "knitr", "ggforce")
+cran_pkgs <- c("tidyverse", "ggsci", "patchwork", 
+               "readxl", "knitr", "ggforce", "lubridate")
 source("./scripts/load_pkgs.R")
 load_packages(cran_pkgs = cran_pkgs)
 
@@ -48,6 +49,7 @@ Both 2020 and 2019 figures for comparison of the trend. The 2020 will be changed
 *Note:* Unfortunately due to formatting of the data the following code is not entirely reproducible as there are parts of it that would have to be adjusted with each newiteration of the spreadsheet. 
 
 ```{r, warning=FALSE, message=FALSE}
+data_up_to <- ymd("2020-03-27")
 df_2019 <- 
   read_xls("./data/publishedweek522019.xls", 
            sheet = "Weekly figures 2019", skip = 3)[c(4,5,9),-c(1,2)] %>%
@@ -79,7 +81,7 @@ df_2020 <-
 
 df_all <- bind_rows(list(df_2019, df_2020)) %>%
   mutate(week = as.numeric(week), 
-         week_ = lubridate::ymd("2020-01-03") + 7 * (week-1)) %>%
+         week_ = ymd("2020-01-03") + 7 * (week-1)) %>%
   group_by(value, week, week_, year) %>%
   summarise(number_of_deaths = sum(number_of_deaths)) %>%
   ungroup()
@@ -148,7 +150,7 @@ total <-
   facet_zoom(xy = week_ < lubridate::ymd("2020-03-28"), 
              horizontal = FALSE, show.area = FALSE) +
   labs(y = "Number of deaths", 
-       title = "Weekly total deaths [grey = 5 year average]") + 
+       title = "Weekly total deaths  [grey = 5 year average]") + 
   theme(axis.title.x = element_blank()) +
   scale_fill_aaas()
 total
@@ -239,7 +241,7 @@ place_of_death %>%
   ggplot(aes(place, fract, fill = cause)) +
   geom_bar(stat = "identity", position = "dodge") +
   scale_fill_nejm() +
-  labs(title = "Place of death",
+  labs(title = paste0("Place of death [data up to ", data_up_to, "]"),
        y = "Fraction of reported deaths",
        fill = "Cause of death:") +
   theme(axis.title.x = element_blank(), text = element_text(size = 16))
@@ -300,7 +302,8 @@ actual_vs_reported %>%
   scale_color_manual(values = col_scheme) +
   guides(color = guide_legend(nrow = 2, byrow = TRUE))+
   labs(color = "Source", shape = "Source", 
-       y = "Number of deaths on the day") +
+       y = "Number of deaths on the day",
+       title = "Discrepancies between the reported numbers of COVID-19 deaths in England and Wales") +
   theme(axis.title.x = element_blank(), legend.position = "none",
         text = element_text(size = 16)) 
   
@@ -310,7 +313,7 @@ actual_vs_reported %>%
 
 ### Age distribution
 
-There is more deaths in among Males than Females. I
+There is more deaths among Males than Females. 
 
 ```{r}
 max_axis <- 
@@ -332,7 +335,8 @@ age_distribution %>%
   scale_y_continuous(breaks = seq(-max_axis, max_axis, 25),
                      labels = abs(seq(-max_axis, max_axis, 25))) +
   labs(x = "Age groups",
-       y = "Cumulative number of deaths", fill = "Sex") +
+       y = paste0("Number of deaths [data up to ", data_up_to, "]"), 
+       fill = "Sex") +
   coord_flip() +
   theme(legend.position = "right")
 
