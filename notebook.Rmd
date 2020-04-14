@@ -1,6 +1,6 @@
 ---
 title: "COVID-19 mortality in England and Wales"
-subtitle: "ONS data up to 03/04/2020"
+subtitle: "Based on the ONS data"
 author: Kasia Kedzierska
 output:
   html_document:
@@ -15,11 +15,14 @@ output:
 ---
 
 ## Disclaimer
-As probably many of the data scientist I wanted to ease my anxiety caused by the COVID-19, and for some reason analysing COVID-19 data is doing that job. I am a **computational biologists** and all the plots I am making here are just *observations*. I am not claiming any conclusions, nor do I do any predictions. All the code is open source, and free for anyone to use, available on [github](https://github.com/kzkedzierska/COVID-19_England_Wales).
+As probably many of the data scientist, I wanted to ease my anxiety caused by the COVID-19. I decided to look at the data related to the pandemic.  I decided not to look at the daily cases as [John Burn-Murdoch](https://twitter.com/jburnmurdoch) from [Financial Times](https://www.ft.com/coronavirus-latest) and the team [Our World in Data](https://ourworldindata.org/the-covid-19-pandemic-slide-deck) are doing a great job. The reasons why I decided to look at deaths are explained in the Motivation section. 
 
-Also, very warm thanks to [Kaspar](https://kasparmartens.rbind.io/) for his help with decisions regarding color schemes and his pointers.
+I am a **computational biologists** and all the plots I am making here are just *observations*. I am not claiming any conclusions, nor do I do any predictions. All the code is open source, and free for anyone to use, available on [github](https://github.com/kzkedzierska/COVID-19_England_Wales).
+
+Also, very warm thanks to [Kaspar](https://kasparmartens.rbind.io/) for his help with decisions regarding color schemes and his helpful advice.
 
 ## Motivation
+
 I decided to look into the mortality rates because I wanted to put the numbers reported by the government in some context. My first question was whether the deaths reported as COVID-19 deaths were a subset of deaths one could expect to see this year? How much COVID-19 increases the death toll? And finally, how does the age distribution of fatalities look?
 
 The data I plotted below shades a bit of light on those topics, but for a more in-depth answer, I am afraid we will have to wait for long. Nevertheless, I still think the following is quite interesting. If not for others, then for the sole reason of looking at the data in almost real-time.
@@ -40,8 +43,13 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 
 # Don't print warnings
 knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+
+# Update date of the data
+data_up_to <- ymd("2020-04-03")
 ```
 ## Data 
+
+Data up to: `r ymd(data_up_to)`
 
 Data is coming from [Office for National Statistics, *Deaths registered weekly in England and Wales, provisional* dataset](https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/deaths/datasets/weeklyprovisionalfiguresondeathsregisteredinenglandandwales). For now I am downloading the data manually into the `data` directory. It would be great to download it directly.
 
@@ -52,7 +60,7 @@ Both 2020 and 2019 figures for comparison of the trend. The 2020 will be changed
 *Note:* Unfortunately due to formatting of the data the following code is not entirely reproducible as there are parts of it that would have to be adjusted with each newiteration of the spreadsheet. 
 
 ```{r, warning=FALSE, message=FALSE}
-data_up_to <- ymd("2020-04-03")
+
 df_2019 <- 
   read_xls("./data/publishedweek522019.xls", 
            sheet = "Weekly figures 2019", skip = 3)[c(4,5,9),-c(1,2)] %>%
@@ -231,14 +239,15 @@ ggsave("./plots/up_to200327.png")
 
 ### Place of deaths
 
-As of 27 of March, there is not a lot of deaths reported outside of the hospitals. This however can change, as we get more data. 
+As of `r format(data_up_to, '%b, %d')`, majority of the deaths are reported in hospitals. 
 
 ```{r}
 place_of_death %>% 
-  mutate(place = gsub("Hospitals \\(acute or community not psychiatric\\)", 
-                      "Hospitals", place),
-         place = gsub("Other communal establishments", 
-                      "Other communal\nestablishments", place)) %>%
+  filter(place != "All deaths") %>%
+  mutate(place = gsub("Hospital \\(acute or community, not psychiatric\\)", 
+                      "Hospital", place),
+         place = gsub("Other communal establishment", 
+                      "Other communal\nestablishment", place)) %>%
   group_by(cause) %>%
   mutate(fract = round(number_of_deaths / sum(number_of_deaths) * 100, 2)) %>%
   group_by(place) %>%
@@ -252,11 +261,12 @@ place_of_death %>%
   theme(axis.title.x = element_blank(), text = element_text(size = 16))
 ```
 
+
 ### Discrepancies between  reported numbers
 
 The numbers reported by the government are lower than the actual number of deaths each day. Some of that comes from the delay in confirming the cause of death. It might be the case that the `Place of death` plot will change as the data will be updated. 
 
-All the comparisons between previous years (in the earlier parts of this notebook) are done based on figures from `ONS deaths by date of registration – registered by 27th March` set for compatibility with earlier datasets.
+All the comparisons between previous years (in the earlier parts of this notebook) are done based on figures from **ONS deaths by date of registration – registered by `r format(data_up_to, '%d %b')`** set for compatibility with earlier datasets. 
 
 ```{r, fig.width=13, fig.height=7}
 col_scheme <- c("#E18727", "#849460", "#56603F", "#20854E")
@@ -283,16 +293,20 @@ discrepancies <-
   scale_color_manual(values = col_scheme) +
   guides(color = guide_legend(nrow = 2, byrow = TRUE))+
   theme(axis.title.x = element_blank(), text = element_text(size = 16),
-        legend.position = "none") 
+        legend.position = "none") +
+  labs(color = "Source", shape = "Source", 
+       y = "Cummulative number of deaths",
+       title = "Delays in the reported numbers of COVID-19 deaths in England and Wales")
 
-discrepancies + 
-  labs(title = "Discrepancies between the reported numbers of COVID-19 deaths in England and Wales")
+discrepancies
 # (discrepancies + theme(legend.position = "none") + labs(title = "[linear scale]")) / 
 #   (discrepancies + scale_y_log10() + labs(title = "[log scale]")) + 
 #   plot_annotation(title =  "Discrepancies between the reported numbers")
 ```
 
-Looking at the daily death rates it becomes clear that there is a significant lag in the data.
+Looking at the daily death rates it becomes clear that there is a significant lag in the data. And the drops in the registered deaths on the weekends (March 21&22, 28&29). 
+
+Also, 
 
 ```{r, fig.width=13, fig.height=7}
 actual_vs_reported %>%
@@ -319,7 +333,7 @@ actual_vs_reported %>%
 
 ### Age distribution
 
-There is more deaths among Males than Females. There were no deaths in the age groups not shown at the time. 
+Looking at the deaths, Males are more affected than Females. There were no deaths in the age groups not shown at the time. This on its own may pose more questions rather than provide answers. How this plot looks like for cases? How does the population structure in UK look like? But for now I don't even know where to look for the data.
 
 ```{r}
 max_axis <- 
@@ -347,9 +361,5 @@ age_distribution %>%
   theme(legend.position = "right")
 
 ```
-
-
-
-
 
 
