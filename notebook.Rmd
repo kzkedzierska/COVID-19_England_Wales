@@ -268,7 +268,7 @@ label_postions <-
   filter(Date == lubridate::ymd("2020/03/5")) %>%
   arrange(number_of_deaths) %>%
   mutate(fixed_position_cum = 2000 + 350 * 1:length(col_scheme),
-         fixed_position_daily = 37 5+ 50 * 1:length(col_scheme))
+         fixed_position_daily = 375 + 50 * 1:length(col_scheme))
 
 discrepancies <-
   actual_vs_reported %>%
