@@ -1,6 +1,6 @@
 ---
 title: "COVID-19 mortality in England and Wales"
-subtitle: "ONS data up to 27/03/2020"
+subtitle: "ONS data up to 03/04/2020"
 author: Kasia Kedzierska
 output:
   html_document:
@@ -268,7 +268,7 @@ label_postions <-
   filter(Date == lubridate::ymd("2020/03/5")) %>%
   arrange(number_of_deaths) %>%
   mutate(fixed_position_cum = 2000 + 350 * 1:length(col_scheme),
-         fixed_position_daily = 375 + 50 * 1:length(col_scheme))
+         fixed_position_daily = 37 5+ 50 * 1:length(col_scheme))
 
 discrepancies <-
   actual_vs_reported %>%
