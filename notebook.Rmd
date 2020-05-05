@@ -45,7 +45,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 
 # Update date of the data
-data_up_to <- ymd("2020-04-10")
+data_up_to <- ymd("2020-04-24")
 ```
 ## Data 
 
@@ -81,7 +81,7 @@ df_2015 <-
          week = as.integer(week),
          week_ = ymd("2020-01-03") + 7 * (week-1)) 
 
-current_2020_spreadsheet <- "./data/publishedweek152020.xlsx"
+current_2020_spreadsheet <- "./data/publishedweek172020.xlsx"
 sheets_2020 <- readxl::excel_sheets(current_2020_spreadsheet)
 
 df_2020_ <- 
@@ -111,8 +111,6 @@ df_all <- bind_rows(list(df_2019, df_2020)) %>%
 ```
 
 ### COVID-19 specific datasets
-
-*Note:* Total number of deaths in `Covid-19 - Place of occurence` sheet is off by a factor of 10 in the data published on 7th of April.
 
 ```{r}
 place_of_death <- 
@@ -300,6 +298,44 @@ ggsave("./plots/up_to200327.png")
 
 ## COVID-19 specific stats
 
+### Number of all COVID-19 related deaths
+
+In this plot, I am looking at the difference in total number of deaths reported in the period since the first COVID-19 related death was reported and the 5-year average. 
+
+```{r}
+col_scheme <- pal_uchicago()(5)[c(1:2,5)]
+names(col_scheme) <- c("increasing phase", 
+                       "decreasing phase", 
+                       "deaths below average")
+
+df_2020_ %>% 
+  filter(!is.na(number_of_deaths)) %>% 
+  group_by(week) %>% 
+  filter(any((value2 == "covid_deaths") & (number_of_deaths > 0))) %>%
+  ungroup() %>%
+  filter(value2 %in% c("total_deaths", "total_deaths_ave5")) %>%
+  select(-value) %>%
+  pivot_wider(names_from = value2, 
+              values_from = number_of_deaths) %>%
+  mutate(difference = total_deaths - total_deaths_ave5,
+         fract = difference / total_deaths_ave5,
+         week_ = lubridate::ymd("2020-01-03") + 7 * (as.numeric(week) - 1),
+         group = ifelse(difference < 0,
+                        "deaths below average",
+                        ifelse(difference > lag(difference),
+                               "increasing phase",
+                               "decreasing phase"))) %>%
+  ggplot(aes(week_, difference, fill = group)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = col_scheme) +
+  theme(legend.title = element_blank(), axis.title.x = element_blank()) +
+  labs(y = "Number of deaths",
+       title = "COVID-19 surplus deaths",
+       subtitle = "Difference in deaths over the 5-year average since first COVID-19 death reported")
+
+```
+
+
 ### Place of deaths
 ```{r}
 fract_place_of_death <- 
@@ -355,6 +391,8 @@ place_of_death_long %>%
 We see increase in almost all places of death. However, COVID-19 accounts only for some of the increase. 
 
 _My speculation:_ Is this because there was no test made? I find it unlikely, as the deaths reported to ONS don't have to be verified by testing to be classified as COVID-19 related. It might be, for example, because [people are scared to go to the hospitals.](https://www.washingtonpost.com/health/patients-with-heart-attacks-strokes-and-even-appendicitis-vanish-from-hospitals/2020/04/19/9ca3ef24-7eb4-11ea-9040-68981f488eed_story.html)
+
+Also, as have been already reported, the outbreak in care homes started later, hence we are seeing an increase in COVID-19 related deaths in those facilities. 
 
 ```{r, fig.width=10, fig.height=5}
 place_of_death_long %>% 
