@@ -332,7 +332,7 @@ df_2020_ %>%
   scale_fill_manual(values = col_scheme) +
   theme(legend.title = element_blank(), axis.title.x = element_blank()) +
   labs(y = "Number of deaths",
-       title = "COVID-19 surplus deaths",
+       title = "COVID-19 excess deaths",
        subtitle = "Difference in deaths over the 5-year average since first COVID-19 death reported")
 
 ```
