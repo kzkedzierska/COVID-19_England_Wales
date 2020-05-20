@@ -45,7 +45,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 
 # Update date of the data
-data_up_to <- ymd("2020-04-24")
+data_up_to <- ymd("2020-05-08")
 ```
 ## Data 
 
@@ -81,7 +81,7 @@ df_2015 <-
          week = as.integer(week),
          week_ = ymd("2020-01-03") + 7 * (week-1)) 
 
-current_2020_spreadsheet <- "./data/publishedweek172020.xlsx"
+current_2020_spreadsheet <- "./data/publishedweek192020.xlsx"
 sheets_2020 <- readxl::excel_sheets(current_2020_spreadsheet)
 
 df_2020_ <- 
@@ -233,7 +233,7 @@ respiratory <-
   ggplot(aes(x = week_, y = number_of_deaths, 
              group = year, color = year, shape = year)) +
   geom_point() +
-  geom_smooth(se = FALSE) +
+  geom_smooth(se = FALSE, span = 0.3) +
   facet_zoom(xy = week_ < data_up_to + 1, 
              horizontal = FALSE, show.area = FALSE) +
   scale_color_aaas() +
@@ -284,7 +284,7 @@ df_2020_ %>%
          week_ < data_up_to + 1) %>%
   ggplot(aes(x = week_, y = number_of_deaths, color = value2, shape = value2)) +
   geom_point() +
-  geom_smooth(se = FALSE) +
+  geom_smooth(se = FALSE, span = 0.3) +
   scale_color_uchicago() +
   labs(y = "Number of deaths", title = "Weekly respiratory deaths",
        color = "Cause of death", shape = "Cause of death") + 
@@ -298,11 +298,9 @@ ggsave("./plots/up_to200327.png")
 
 ## COVID-19 specific stats
 
-### Number of all COVID-19 related deaths
+### Excess deaths - proxy for all COVID-19 related deaths
 
 In this plot, I am looking at the difference in total number of deaths reported in the period since the first COVID-19 related death was reported and the 5-year average. 
-
-We see first evidence of UK being past the peak, or in the plateau phase. 
 
 ```{r}
 col_scheme <- pal_uchicago()(5)[c(1:2,5)]
@@ -310,7 +308,8 @@ names(col_scheme) <- c("increasing phase",
                        "decreasing phase", 
                        "deaths below average")
 
-df_2020_ %>% 
+df_2020_excess <-
+  df_2020_ %>% 
   filter(!is.na(number_of_deaths)) %>% 
   group_by(week) %>% 
   filter(any((value2 == "covid_deaths") & (number_of_deaths > 0))) %>%
@@ -326,7 +325,19 @@ df_2020_ %>%
                         "deaths below average",
                         ifelse(difference > lag(difference),
                                "increasing phase",
-                               "decreasing phase"))) %>%
+                               "decreasing phase")))
+all_excess_deaths <- df_2020_excess %>% 
+  pull(difference) %>% 
+  sum()
+
+all_deaths <- df_2020 %>% 
+  filter(value == "total_deaths") %>% 
+  pull(number_of_deaths) %>%
+  sum()
+
+fraction_excess <- all_excess_deaths / all_deaths
+
+df_2020_excess %>%
   ggplot(aes(week_, difference, fill = group)) +
   geom_bar(stat = "identity") +
   scale_fill_manual(values = col_scheme) +
@@ -337,8 +348,11 @@ df_2020_ %>%
 
 ```
 
+We see more evidence that England & Wales has moved **past the peak**. Hopefully, this will be the only wave. Until `r format(data_up_to, '%b, %d')` at least **`r format(all_excess_deaths, big.mark =" ")` more people died** when compared to the 5 year average. This means that **`r sprintf("%.1f%%", 100 * fraction_excess)` of all deaths this year were directly, or indirectly caused by COVID-19** (taking the excess mortlity over the 5 year average as best proxy for number of deaths as a result of pandemic).
 
-### Place of deaths
+
+### Place of death
+
 ```{r}
 fract_place_of_death <- 
   place_of_death %>% 
@@ -352,10 +366,9 @@ fract_place_of_death <-
   mutate(fract = round(number_of_deaths / sum(number_of_deaths) * 100, 2))
 ```
 
+As of `r format(data_up_to, '%b, %d')`, majority of the deaths are reported in hospitals. However `r 100 - round((fract_place_of_death %>% filter(place == "Hospital", cause == "COVID-19 deaths") %>% pull(fract)), 0)`% of deaths occur outside of hospitals. Thankfully, all numbers seem to be going down, with hospital deaths dropping below the numbers from the begining of the epidemic. 
 
-As of `r format(data_up_to, '%b, %d')`, majority of the deaths are reported in hospitals. However `r 100 - round((fract_place_of_death %>% filter(place == "Hospital", cause == "COVID-19 deaths") %>% pull(fract)), 0)`% of deaths occur outside of hospitals.
-
-```{r}
+```{r, eval=FALSE, echo=FALSE}
 fract_place_of_death %>%
   group_by(place) %>%
   filter(max(fract) > 1) %>%
@@ -367,6 +380,7 @@ fract_place_of_death %>%
        fill = "Cause of death:") +
   theme(axis.title.x = element_blank(), text = element_text(size = 16))
 ```
+
 
 ```{r, fig.width=14, fig.height=7, eval=FALSE, echo=FALSE}
 place_of_death_long %>% 
@@ -390,9 +404,9 @@ place_of_death_long %>%
   scale_x_date(breaks = ymd("2020/03/13", "2020/04/03"), date_labels = "%b")
 ```
 
-We see increase in almost all places of death. However, COVID-19 accounts only for some of the increase. 
+We saw increase in almost all places of death. However, COVID-19 accounted only for some of the increase. 
 
-_My speculation:_ Is this because there was no test made? I find it unlikely, as the deaths reported to ONS don't have to be verified by testing to be classified as COVID-19 related. It might be, for example, because [people are scared to go to the hospitals.](https://www.washingtonpost.com/health/patients-with-heart-attacks-strokes-and-even-appendicitis-vanish-from-hospitals/2020/04/19/9ca3ef24-7eb4-11ea-9040-68981f488eed_story.html) 
+_My speculation:_ Was that the case because no test was ? I find it unlikely, as the deaths reported to ONS don't have to be verified by testing to be classified as COVID-19 related. It might be, for example, because [people are scared to go to the hospitals.](https://www.washingtonpost.com/health/patients-with-heart-attacks-strokes-and-even-appendicitis-vanish-from-hospitals/2020/04/19/9ca3ef24-7eb4-11ea-9040-68981f488eed_story.html) 
 
 Also, as have been already reported, the outbreak in care homes started later, hence we are seeing an increase in COVID-19 related deaths in those facilities. 
 
@@ -431,10 +445,9 @@ place_of_death_long %>%
   scale_x_date(breaks = ymd("2020/03/13", "2020/04/03"), date_labels = "%b")
 ```
 
+### Differences between the reported numbers
 
-### Discrepancies between the reported numbers
-
-The numbers reported by the government are lower than the actual number of deaths each day. Some of that comes from the delay in confirming the cause of death. It might be the case that the `Place of death` plot will change as the data will be updated. 
+The numbers reported by the government are lower than the actual number of deaths each day. Some of that comes from the delay in confirming the cause of death. 
 
 All the comparisons between previous years (in the earlier parts of this notebook) are done based on figures from **ONS deaths by date of registration – registered by `r format(data_up_to, '%d %b')`** set for compatibility with earlier datasets. 
 
@@ -483,8 +496,9 @@ discrepancies
 #   plot_annotation(title =  "Discrepancies between the reported numbers")
 ```
 
-Looking at the daily death rates it becomes clear that there is a significant lag in the data. And the drops in the registered deaths on the weekends (March 21 & 22, 28 & 29, April 4 & 5, Easter weekend, and so on). 
+Looking at the daily death rates it becomes clear that (1) data is very noisy and (2) there is a significant lag in the data. 
 
+We see that ONS data is especially influenced by the weekends and bank holidays. The reported numbers drop on the weekends (March 21 & 22, 28 & 29, April 4 & 5, Easter weekend, and so on) and are higher in the next days.
 
 ```{r, fig.width=13, fig.height=7}
 actual_vs_reported %>%
@@ -493,8 +507,9 @@ actual_vs_reported %>%
   arrange(Date) %>%
   mutate(deaths_on_that_day = number_of_deaths - lag(number_of_deaths)) %>%
   ggplot(aes(x = Date, y = deaths_on_that_day, color = source, shape = source)) +
-  geom_smooth(se = FALSE) +
+  geom_smooth(se = FALSE, span = 0.3) +
   geom_point(color = "black") +
+  geom_line(aes(group = source), alpha = 0.7, linetype = "dotdash") +
   geom_text(data = label_postions, size = 7, hjust = 0,
             aes(x = Date, y = fixed_position_daily, label = source)) +
   geom_point(data = label_postions, color = "black",
@@ -513,7 +528,7 @@ actual_vs_reported %>%
 
 Looking at the deaths, Males are more affected than Females. How this plot looks like for cases? I.e. are men more susceptible? 
 
-I also wanted to compare the COVID-19 age and sex distribution with the UK population structure. I ended up comparing it to even more adequate data - to the deaths occuring in UK this year, before COVID-19. This will allows to put the age structure of COVID-19 into context.
+I also wanted to compare the COVID-19 age and sex distribution with the UK population structure. I ended up comparing it to even more adequate data - to the deaths occuring in UK this year, before COVID-19. This will allow to put the age structure of COVID-19 into context.
 
 ```{r, eval=FALSE, echo=FALSE}
 max_axis <- 
@@ -590,7 +605,7 @@ age_distribution_bound %>%
         text = element_text(size = 16))
 ```
 
-This is even more visible if we would compare the fraction of all deaths in each age group and with respect to sex.
+This is even more visible when we compare the fraction of all deaths in each age group and with respect to sex.
 
 ```{r, fig.width=10, fig.height=7}
 age_distribution_bound %>% 
