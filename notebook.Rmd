@@ -45,7 +45,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 knitr::opts_chunk$set(warning=FALSE, message=FALSE)
 
 # Update date of the data
-data_up_to <- ymd("2020-05-08")
+data_up_to <- ymd("2020-05-15")
 ```
 ## Data 
 
@@ -81,7 +81,7 @@ df_2015 <-
          week = as.integer(week),
          week_ = ymd("2020-01-03") + 7 * (week-1)) 
 
-current_2020_spreadsheet <- "./data/publishedweek192020.xlsx"
+current_2020_spreadsheet <- "./data/publishedweek202020.xlsx"
 sheets_2020 <- readxl::excel_sheets(current_2020_spreadsheet)
 
 df_2020_ <- 
@@ -348,7 +348,7 @@ df_2020_excess %>%
 
 ```
 
-We see more evidence that England & Wales has moved **past the peak**. Hopefully, this will be the only wave. Until `r format(data_up_to, '%b, %d')` at least **`r format(all_excess_deaths, big.mark =" ")` more people died** when compared to the 5 year average. This means that **`r sprintf("%.1f%%", 100 * fraction_excess)` of all deaths this year were directly, or indirectly caused by COVID-19** (taking the excess mortlity over the 5 year average as best proxy for number of deaths as a result of pandemic).
+Until last week, we saw more evidence that England & Wales has moved **past the peak**. IT is worrysome to see the increase in excess mortality, but I hope it is an artifact of the way the data is logging... Up to `r format(data_up_to, '%b, %d')` at least **`r format(all_excess_deaths, big.mark =" ")` more people died** when compared to the 5 year average. This means that **`r sprintf("%.1f%%", 100 * fraction_excess)` of all deaths this year were directly, or indirectly caused by COVID-19** (taking the excess mortlity over the 5 year average as best proxy for number of deaths as a result of pandemic).
 
 
 ### Place of death
