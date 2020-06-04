@@ -1,19 +1,36 @@
 ---
 title: "COVID-19 mortality in England and Wales"
 subtitle: "Based on the ONS data"
-author: Kasia Kedzierska
-date: "`r Sys.Date()`"
-output:
-  html_document:
-    df_print: paged
-    code_folding: hide
-    theme: paper
-    toc: true
-    toc_float:
-      collapsed: false
-      smooth_scroll: false
-    toc_depth: 3
+summary: Visualisation of the mortality data in Endland and Wales during COVID-19 pandemic.
+authors:
+- admin
+tags:
+categories:
+- data_viz
+date: "2020-04-20"
+lastmod: "2020-06-04"
+featured: false
+draft: false
+
+# Featured image
+# To use, add an image named `featured.jpg/png` to your page's folder.
+# Placement options: 1 = Full column width, 2 = Out-set, 3 = Screen-width
+# Focal point options: Smart, Center, TopLeft, Top, TopRight, Left, Right, BottomLeft, Bottom, BottomRight
+image:
+  placement: 2
+  caption: ''
+  focal_point: ""
+  preview_only: false
+
+# Projects (optional).
+#   Associate this post with one or more of your projects.
+#   Simply enter your project's folder or file name without extension.
+#   E.g. `projects = ["internal-project"]` references `content/project/deep-learning/index.md`.
+#   Otherwise, set `projects = []`.
+projects: []
 ---
+
+<meta http-equiv = "refresh" content = " 0 ; url = /covid-19"/>
 
 ## Disclaimer
 As probably many of the data scientist, I wanted to ease my anxiety caused by the COVID-19. I decided to look at the data related to the pandemic.  I decided not to look at the daily cases as [John Burn-Murdoch](https://twitter.com/jburnmurdoch) from [Financial Times](https://www.ft.com/coronavirus-latest) and the team [Our World in Data](https://ourworldindata.org/the-covid-19-pandemic-slide-deck) are doing a great job. The reasons why I decided to look at deaths are explained in the Motivation section. 
@@ -36,6 +53,9 @@ Loading up the necessary packages (installing them if they are missing). Setting
 # Load packages
 cran_pkgs <- c("tidyverse", "ggsci", "patchwork", 
                "readxl", "knitr", "ggforce", "lubridate")
+if (grepl("content", getwd())) {setwd(paste0(sub(pattern = "(.*/content)/.*", 
+                                                 replacement = "\\1", 
+                                                 x = getwd()), "/post/covid-19"))}
 source("scripts/load_pkgs.R")
 load_packages(cran_pkgs = cran_pkgs)
 
