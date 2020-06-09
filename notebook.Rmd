@@ -46,7 +46,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 # Update date of the data
-data_up_to <- ymd("2020-05-22")
+data_up_to <- ymd("2020-05-29")
 ```
 ## Data 
 
@@ -82,7 +82,7 @@ df_2015 <-
          week = as.integer(week),
          week_ = ymd("2020-01-03") + 7 * (week-1)) 
 
-current_2020_spreadsheet <- "./data/publishedweek212020.xlsx"
+current_2020_spreadsheet <- "./data/publishedweek222020.xlsx"
 sheets_2020 <- readxl::excel_sheets(current_2020_spreadsheet)
 
 df_2020_ <- 
@@ -109,6 +109,15 @@ df_all <- bind_rows(list(df_2019, df_2020)) %>%
   group_by(value, week, week_, year) %>%
   summarise(number_of_deaths = sum(number_of_deaths)) %>%
   ungroup()
+
+# first COVID death
+first_covid_week <-
+  df_2020_ %>% 
+  filter(value2 == "covid_deaths", number_of_deaths > 0) %>% 
+  arrange(week) %>% 
+  pull(week) %>% 
+  head(n = 1) %>%
+  as.numeric()
 ```
 
 ### COVID-19 specific datasets
@@ -199,7 +208,7 @@ age_distribution_all <-
 
 ### All weekly deaths in England and Wales
 
-Still very early, but looks like the overall weekly numbers are higher than last year, and the past 5 years.
+It looks like the number of deaths came back to the 5-year average level. Really hopeful there will be no second wave. 
 
 ```{r, fig.height=8, fig.width=7}
 total <- 
@@ -220,7 +229,7 @@ total
 
 ### Respiratory deaths
 
-COVID-19 deaths are increasing the number of repiratory deaths. 
+COVID-19 deaths - those with COVID-19 mentioned on the death certificate and those without, result in higher than last year numbers of respiratory deaths. Thanfully this number is going down as well.
 
 ```{r, fig.height=8, fig.width=7}
 upper_limit <-
@@ -235,7 +244,7 @@ respiratory <-
              group = year, color = year, shape = year)) +
   geom_point() +
   geom_smooth(se = FALSE, span = 0.3) +
-  facet_zoom(xy = week_ < data_up_to + 1, 
+  facet_zoom(xy = week_ < data_up_to + 1 & week >= first_covid_week, 
              horizontal = FALSE, show.area = FALSE) +
   scale_color_aaas() +
   labs(y = "Number of deaths", title = "Weekly respiratory deaths") + 
@@ -244,7 +253,7 @@ respiratory <-
 respiratory
 ```
 
-However, the difference is not yet visible on the cummulative scale. 
+However, the total number of COVID-19 deaths has already put the total number of respiratory deaths above the total 2019 respiratory deaths. 
 
 ```{r, fig.height=8, fig.width=7}
 cumulative_respiratory <- 
@@ -257,7 +266,7 @@ cumulative_respiratory <-
   ggplot(aes(x = week_, y = cum, color = year, shape = year)) +
   geom_point() +
   geom_smooth(se = FALSE) +
-  facet_zoom(xy = week_ < data_up_to + 1, 
+  facet_zoom(xy = week_ < data_up_to + 7 & week >= first_covid_week, 
              horizontal = FALSE, show.area = FALSE) +
   scale_color_aaas() +
   labs(y = "Number of deaths", shape = "Year",
@@ -287,6 +296,8 @@ df_2020_ %>%
   geom_point() +
   geom_smooth(se = FALSE, span = 0.3) +
   scale_color_uchicago() +
+  facet_zoom(xy = week_ < data_up_to + 7 & week >= first_covid_week, 
+             horizontal = FALSE, show.area = FALSE) +
   labs(y = "Number of deaths", title = "Weekly respiratory deaths",
        color = "Cause of death", shape = "Cause of death") + 
   theme(axis.title.x = element_blank(), legend.position = "bottom")
@@ -349,7 +360,7 @@ df_2020_excess %>%
 
 ```
 
-We see more evidence that England & Wales has moved **past the peak**. Up to `r format(data_up_to, '%b, %d')` at least **`r format(all_excess_deaths, big.mark =" ")` more people died** when compared to the 5 year average. This means that **`r sprintf("%.1f%%", 100 * fraction_excess)` of all deaths this year were directly, or indirectly caused by COVID-19** (taking the excess mortality over the 5 year average as best proxy for number of deaths as a result of pandemic).
+England & Wales has moved **past the peak**. Up to `r format(data_up_to, '%b, %d')` at least **`r format(all_excess_deaths, big.mark =" ")` more people died** when compared to the 5 year average. This means that **`r sprintf("%.1f%%", 100 * fraction_excess)` of all deaths this year were directly, or indirectly caused by COVID-19** (taking the excess mortality over the 5 year average as best proxy for number of deaths as a result of pandemic).
 
 
 ### Place of death
@@ -367,7 +378,7 @@ fract_place_of_death <-
   mutate(fract = round(number_of_deaths / sum(number_of_deaths) * 100, 2))
 ```
 
-As of `r format(data_up_to, '%b, %d')`, majority of the deaths are reported in hospitals. However `r 100 - round((fract_place_of_death %>% filter(place == "Hospital", cause == "COVID-19 deaths") %>% pull(fract)), 0)`% of deaths occur outside of hospitals. Thankfully, all numbers seem to be going down, with hospital deaths dropping below the numbers from the begining of the epidemic. 
+As of `r format(data_up_to, '%b, %d')`, majority of the deaths are reported in hospitals. However `r 100 - round((fract_place_of_death %>% filter(place == "Hospital", cause == "COVID-19 deaths") %>% pull(fract)), 0)`% of deaths occur outside of hospitals. Thankfully, all numbers seem to be going down, with hospital deaths dropping below the numbers from the beginning of the epidemic. 
 
 ```{r, eval=FALSE, echo=FALSE}
 fract_place_of_death %>%
@@ -533,7 +544,7 @@ actual_vs_reported %>%
 
 Looking at the deaths, Males are more affected than Females. How this plot looks like for cases? I.e. are men more susceptible? 
 
-I also wanted to compare the COVID-19 age and sex distribution with the UK population structure. I ended up comparing it to even more adequate data - to the deaths occuring in UK this year, before COVID-19. This will allow to put the age structure of COVID-19 into context.
+I also wanted to compare the COVID-19 age and sex distribution with the UK population structure. I ended up comparing it to even more adequate data - to the deaths occurring in UK this year, before COVID-19. This will allow to put the age structure of COVID-19 into context.
 
 ```{r, eval=FALSE, echo=FALSE}
 max_axis <- 
