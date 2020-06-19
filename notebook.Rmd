@@ -46,7 +46,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 # Update date of the data
-data_up_to <- ymd("2020-05-29")
+data_up_to <- ymd("2020-06-05")
 ```
 ## Data 
 
@@ -82,7 +82,7 @@ df_2015 <-
          week = as.integer(week),
          week_ = ymd("2020-01-03") + 7 * (week-1)) 
 
-current_2020_spreadsheet <- "./data/publishedweek222020.xlsx"
+current_2020_spreadsheet <- "./data/publishedweek232020.xlsx"
 sheets_2020 <- readxl::excel_sheets(current_2020_spreadsheet)
 
 df_2020_ <- 
@@ -218,7 +218,7 @@ total <-
   geom_bar(stat = "identity", position = "dodge") +
   geom_smooth(data = filter(df_all, value == "total_deaths_ave5" & year == "2019"),
               color = "grey60", se = FALSE) +
-  facet_zoom(xy = week_ < data_up_to + 1, 
+  facet_zoom(xy = week_ < data_up_to + 1 & week >= first_covid_week,
              horizontal = FALSE, show.area = FALSE) +
   labs(y = "Number of deaths", 
        title = "Weekly total deaths  [grey = 5 year average]") + 
