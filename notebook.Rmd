@@ -46,7 +46,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 # Update date of the data
-data_up_to <- ymd("2020-06-05")
+data_up_to <- ymd("2020-06-26")
 ```
 ## Data 
 
@@ -58,21 +58,30 @@ Data is coming from [Office for National Statistics, *Deaths registered weekly i
 
 Both 2020 and 2019 figures for comparison of the trend. The 2020 will be changed each week, while 2019 remains stable. 
 
-*Note:* Unfortunately due to formatting of the data the following code is not entirely reproducible as there are parts of it that would have to be adjusted with each newiteration of the spreadsheet. 
+*Note:* Unfortunately due to formatting of the data the following code is not entirely reproducible as there are parts of it that would have to be adjusted with each reiteration of the spreadsheet. In theory the code should be backward compatible, but I haven't checked that in practice. 
+
+#### 2019 baseline
+
+Adding 2019 figures to establish a baseline comparison. 
 
 ```{r, warning=FALSE, message=FALSE}
-
 df_2019 <- 
-  read_xls("./data/publishedweek522019.xls", 
+  read_xls("./data/2019/publishedweek522019.xls", 
            sheet = "Weekly figures 2019", skip = 3)[c(4,5,9),-c(1,2)] %>%
   mutate(value = c("total_deaths", "total_deaths_ave5", "respiratory_deaths")) %>%
   mutate_at(vars(-value), as.numeric) %>% 
   pivot_longer(names_to = "week", 
                values_to = "number_of_deaths", -value) %>%
   mutate(year = "2019")
+```
 
+#### 2015 flu outbreak
+
+2015 added for comparison with big flu outbreak. 
+
+```{r, warning=FALSE, message=FALSE}
 df_2015 <-
-  read_xls("./data/publishedweek2015.xls", 
+  read_xls("./data/2015/publishedweek2015.xls", 
            sheet = "Weekly Figures 2015", skip = 3)[c(4,5,9),-c(1)] %>%
   mutate(value = c("total_deaths", "total_deaths_ave5", "respiratory_deaths")) %>%
   mutate_at(vars(-value), as.integer) %>% 
@@ -80,9 +89,15 @@ df_2015 <-
                values_to = "number_of_deaths", -value) %>%
   mutate(year = "2015", 
          week = as.integer(week),
-         week_ = ymd("2020-01-03") + 7 * (week-1)) 
+         week_ = ymd("2020-01-03") + 7 * (week-1))
+```
 
-current_2020_spreadsheet <- "./data/publishedweek232020.xlsx"
+#### 2020 current data
+
+This spreadsheet is the one that changes the most and includes increasingly more information. 
+
+```{r, warning=FALSE, message=FALSE}
+current_2020_spreadsheet <- "./data/2020/publishedweek262020.xlsx"
 sheets_2020 <- readxl::excel_sheets(current_2020_spreadsheet)
 
 df_2020_ <- 
@@ -102,14 +117,11 @@ df_2020 <-
   select(-value2) %>%
   mutate(year = "2020") %>%
   filter(!is.na(number_of_deaths))
+```
 
-df_all <- bind_rows(list(df_2019, df_2020)) %>%
-  mutate(week = as.numeric(week), 
-         week_ = ymd("2020-01-03") + 7 * (week-1)) %>%
-  group_by(value, week, week_, year) %>%
-  summarise(number_of_deaths = sum(number_of_deaths)) %>%
-  ungroup()
+Here, I want to figure out the date of first COVID-19 related death in the UK.
 
+```{r, warning=FALSE, message=FALSE}
 # first COVID death
 first_covid_week <-
   df_2020_ %>% 
@@ -120,9 +132,22 @@ first_covid_week <-
   as.numeric()
 ```
 
+Joining the 2020 data with 2019 baseline.
+
+```{r, warning=FALSE, message=FALSE}
+df_all <- 
+  bind_rows(list(df_2019, df_2020)) %>%
+  mutate(week = as.numeric(week), 
+         week_ = ymd("2020-01-03") + 7 * (week-1)) %>%
+  group_by(value, week, week_, year) %>%
+  summarise(number_of_deaths = sum(number_of_deaths)) %>%
+  ungroup()
+```
+
+
 ### COVID-19 specific datasets
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 place_of_death <- 
   read_xlsx(current_2020_spreadsheet, 
             sheet = sheets_2020[grepl("Place", sheets_2020)], 
@@ -134,16 +159,16 @@ place_of_death <-
   mutate(country = rep(c(rep("England and Wales", 2), rep("England", 2), rep("Wales", 2)), 7),
          cause = rep(rep(c("Total deaths", "COVID-19 deaths"), 3), 7)) %>%
   mutate(number_of_deaths = as.numeric(number_of_deaths))
+```
 
-actual_vs_reported <-
-  read_xlsx(current_2020_spreadsheet, 
-            sheet = sheets_2020[str_detect(sheets_2020, regex("E&W comparisons", ignore_case = TRUE))], skip = 4, 
-            col_types = c("date", rep("numeric", 8)))[, 1:9] %>%
-  filter(!is.na(Date)) %>%
-  pivot_longer(names_to = "source",
-               values_to = "number_of_deaths",
-               -Date)
+To get an idea of the dataset let's print he 
+```{r, warning=FALSE, message=FALSE}
+place_of_death %>%
+  sample_n(5)
+```
 
+
+```{r}
 place_of_death_long <- 
   read_xlsx(current_2020_spreadsheet, 
             sheet = sheets_2020[grepl("Place", sheets_2020)], 
@@ -157,7 +182,26 @@ place_of_death_long <-
                          rep("England", 2), 
                          rep("Wales", 2)), n()/6),
          week = rep(rep(11:(10 + n() / 36), each = 6), 6))
+```
 
+
+```{r, warning=FALSE, message=FALSE}
+actual_vs_reported <-
+  read_xlsx(current_2020_spreadsheet, 
+            sheet = sheets_2020[str_detect(sheets_2020, 
+                                           regex("E&W comparisons", 
+                                                 ignore_case = TRUE))], skip = 4, 
+            col_types = c("date", rep("numeric", 8)))[, 1:9] %>%
+  filter(!is.na(Date)) %>%
+  pivot_longer(names_to = "source",
+               values_to = "number_of_deaths",
+               -Date)
+
+
+```
+
+
+```{r, warning=FALSE, message=FALSE}
 age_distribution <- 
   read_xlsx(current_2020_spreadsheet, 
             sheet = sheets_2020[str_detect(sheets_2020, 
@@ -172,8 +216,12 @@ age_distribution <-
                cols = -c(age_group, sex)) %>% 
   replace_na(list(number_of_deaths = 0)) %>%
   group_by(sex, week) %>%
-  filter(sum(number_of_deaths, na.rm = TRUE) > 0)
+  filter(sum(number_of_deaths, na.rm = TRUE) > 0,
+         !str_detect(week, "[^0-9]+"))
+```
 
+
+```{r}
 age_levels <- age_distribution$age_group %>% unique()
 age_distribution <-
   age_distribution %>%
@@ -275,7 +323,7 @@ cumulative_respiratory <-
 cumulative_respiratory
 ```
 
-COVID-19 deaths increase exponentailly, while the other respiratory deths seem to be stable.
+COVID-19 deaths increase exponentially, while the other respiratory deaths seem to be stable.
 
 As per [BBC plot](https://www.bbc.co.uk/news/health-52361519) I added the 2015 respiratory deaths, when the worst flu outbreak took place.
 
@@ -290,8 +338,8 @@ df_2020_ %>%
                mutate(value2 = ifelse(value == "respiratory_deaths", 
                                       "respiratory deaths in 2015", value)))) %>%
   filter(value == "respiratory_deaths") %>%
-  filter(!is.na(number_of_deaths), 
-         week_ < data_up_to + 1) %>%
+  filter(!is.na(number_of_deaths)) %>% # , 
+         #week_ < data_up_to + 1) %>%
   ggplot(aes(x = week_, y = number_of_deaths, color = value2, shape = value2)) +
   geom_point() +
   geom_smooth(se = FALSE, span = 0.3) +
@@ -482,8 +530,8 @@ label_postions <-
   ungroup() %>%
   filter(Date == lubridate::ymd("2020/03/6")) %>%
   arrange(-max) %>%
-  mutate(fixed_position_cum = max(max) - 0.07 * max(max) * 1:length(col_scheme),
-         fixed_position_daily = max(max_on_day) - 0.07 * max(max_on_day) * 1:length(col_scheme))
+  mutate(fixed_position_cum = 1.15 * max(max) - 0.07 * max(max) * 1:length(col_scheme),
+         fixed_position_daily = 1.15 * max(max_on_day) - 0.07 * max(max_on_day) * 1:length(col_scheme))
 
 discrepancies <-
   actual_vs_reported %>%
@@ -522,7 +570,7 @@ actual_vs_reported %>%
   group_by(source) %>%
   arrange(Date) %>%
   mutate(deaths_on_that_day = number_of_deaths - lag(number_of_deaths)) %>%
-  ggplot(aes(x = Date, y = deaths_on_that_day, color = source, shape = source)) +
+   ggplot(aes(x = Date, y = deaths_on_that_day, color = source, shape = source)) +
   geom_smooth(se = FALSE, span = 0.3) +
   geom_point(color = "black") +
   geom_line(aes(group = source), alpha = 0.7, linetype = "dotdash") +
