@@ -46,7 +46,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 # Update date of the data
-data_up_to <- ymd("2020-06-26")
+data_up_to <- ymd("2020-07-03")
 ```
 ## Data 
 
@@ -97,7 +97,7 @@ df_2015 <-
 This spreadsheet is the one that changes the most and includes increasingly more information. 
 
 ```{r, warning=FALSE, message=FALSE}
-current_2020_spreadsheet <- "./data/2020/publishedweek262020.xlsx"
+current_2020_spreadsheet <- "./data/2020/publishedweek272020.xlsx"
 sheets_2020 <- readxl::excel_sheets(current_2020_spreadsheet)
 
 df_2020_ <- 
