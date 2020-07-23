@@ -16,7 +16,7 @@ output:
 ---
 
 ## Disclaimer
-As probably many of the data scientist, I wanted to ease my anxiety caused by the COVID-19. I decided to look at the data related to the pandemic.  I decided not to look at the daily cases as [John Burn-Murdoch](https://twitter.com/jburnmurdoch) from [Financial Times](https://www.ft.com/coronavirus-latest) and the team [Our World in Data](https://ourworldindata.org/the-covid-19-pandemic-slide-deck) are doing a great job. The reasons why I decided to look at deaths are explained in the Motivation section. 
+As probably many of the data scientist, I wanted to ease my anxiety caused by the COVID-19. I decided to look at the data related to the pandemic. I decided not to look at the daily cases as [John Burn-Murdoch](https://twitter.com/jburnmurdoch) from [Financial Times](https://www.ft.com/coronavirus-latest) and the team [Our World in Data](https://ourworldindata.org/the-covid-19-pandemic-slide-deck) are doing a great job. The reasons why I decided to look at deaths are explained in the Motivation section. 
 
 I am a **computational biologist** and all the plots I am making here are just *observations*. I am not claiming any conclusions, nor do I do any predictions. All the code is open source, and free for anyone to use, available on [github](https://github.com/kzkedzierska/COVID-19_England_Wales).
 
@@ -46,7 +46,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 # Update date of the data
-data_up_to <- ymd("2020-07-03")
+data_up_to <- ymd("2020-07-10")
 ```
 ## Data 
 
@@ -97,7 +97,7 @@ df_2015 <-
 This spreadsheet is the one that changes the most and includes increasingly more information. 
 
 ```{r, warning=FALSE, message=FALSE}
-current_2020_spreadsheet <- "./data/2020/publishedweek272020.xlsx"
+current_2020_spreadsheet <- "./data/2020/publishedweek282020.xlsx"
 sheets_2020 <- readxl::excel_sheets(current_2020_spreadsheet)
 
 df_2020_ <- 
@@ -132,7 +132,7 @@ first_covid_week <-
   as.numeric()
 ```
 
-Joining the 2020 data with 2019 baseline.
+Next, joining the 2020 data with 2019 baseline.
 
 ```{r, warning=FALSE, message=FALSE}
 df_all <- 
@@ -144,8 +144,9 @@ df_all <-
   ungroup()
 ```
 
-
 ### COVID-19 specific datasets
+
+One of the important information in understanding the pandemic is to see where the deaths are localized. 
 
 ```{r, warning=FALSE, message=FALSE}
 place_of_death <- 
@@ -161,7 +162,8 @@ place_of_death <-
   mutate(number_of_deaths = as.numeric(number_of_deaths))
 ```
 
-To get an idea of the dataset let's print he 
+The place of death dataset has information on place, country, number of death and whether the cause was related to COVID-19.
+
 ```{r, warning=FALSE, message=FALSE}
 place_of_death %>%
   sample_n(5)
@@ -196,8 +198,6 @@ actual_vs_reported <-
   pivot_longer(names_to = "source",
                values_to = "number_of_deaths",
                -Date)
-
-
 ```
 
 
@@ -222,7 +222,10 @@ age_distribution <-
 
 
 ```{r}
-age_levels <- age_distribution$age_group %>% unique()
+age_levels <- 
+  age_distribution$age_group %>% 
+  unique()
+
 age_distribution <-
   age_distribution %>%
   ungroup() %>%
@@ -264,7 +267,8 @@ total <-
   filter(value == "total_deaths") %>%
   ggplot(aes(x = week_, y = number_of_deaths, fill = year)) +
   geom_bar(stat = "identity", position = "dodge") +
-  geom_smooth(data = filter(df_all, value == "total_deaths_ave5" & year == "2019"),
+  geom_smooth(data = filter(df_all, 
+                            value == "total_deaths_ave5" & year == "2019"),
               color = "grey60", se = FALSE) +
   facet_zoom(xy = week_ < data_up_to + 1 & week >= first_covid_week,
              horizontal = FALSE, show.area = FALSE) +
@@ -277,7 +281,7 @@ total
 
 ### Respiratory deaths
 
-COVID-19 deaths - those with COVID-19 mentioned on the death certificate and those without, result in higher than last year numbers of respiratory deaths. Thanfully this number is going down as well.
+COVID-19 deaths - those with COVID-19 mentioned on the death certificate and those without, result in higher than last year numbers of respiratory deaths. Thankfully, at this time it looks like the first wave has passed.
 
 ```{r, fig.height=8, fig.width=7}
 upper_limit <-
@@ -386,18 +390,21 @@ df_2020_excess <-
                         ifelse(difference > lag(difference),
                                "increasing phase",
                                "decreasing phase")))
-all_excess_deaths <- df_2020_excess %>% 
+all_excess_deaths <- 
+  df_2020_excess %>% 
   pull(difference) %>% 
   sum()
 
-all_deaths <- df_2020 %>% 
+all_deaths <- 
+  df_2020 %>% 
   filter(value == "total_deaths") %>% 
   pull(number_of_deaths) %>%
   sum()
 
 fraction_excess <- all_excess_deaths / all_deaths
 
-df_2020_excess %>%
+excess_plt <- 
+  df_2020_excess %>%
   ggplot(aes(week_, difference, fill = group)) +
   geom_bar(stat = "identity") +
   scale_fill_manual(values = col_scheme) +
@@ -405,7 +412,8 @@ df_2020_excess %>%
   labs(y = "Number of deaths",
        title = "COVID-19 excess deaths",
        subtitle = "Difference in deaths over the 5-year average since first COVID-19 death reported")
-
+excess_plt
+ggsave(plot = excess_plt, filename = "featured.png", width = 7, height = 5)
 ```
 
 England & Wales has moved **past the peak**. Up to `r format(data_up_to, '%b, %d')` at least **`r format(all_excess_deaths, big.mark =" ")` more people died** when compared to the 5 year average. This means that **`r sprintf("%.1f%%", 100 * fraction_excess)` of all deaths this year were directly, or indirectly caused by COVID-19** (taking the excess mortality over the 5 year average as best proxy for number of deaths as a result of pandemic).
@@ -460,8 +468,7 @@ place_of_death_long %>%
        y = "Number of reported deaths",
        fill = "Place of death:") +
   theme(axis.title.x = element_blank(),
-        text = element_text(size = 16)) +
-  scale_x_date(breaks = ymd("2020/03/13", "2020/04/03"), date_labels = "%b")
+        text = element_text(size = 16))
 ```
 
 We saw increase in almost all places of death followed, thankfully by decrease. 
@@ -505,8 +512,7 @@ place_of_death_long %>%
        y = "Number of reported deaths",
        fill = "Place of death:") +
   theme(axis.title.x = element_blank(),
-        text = element_text(size = 16)) +
-  scale_x_date(breaks = ymd("2020/03/13", "2020/04/03"), date_labels = "%b")
+        text = element_text(size = 16))
 ```
 
 ### Differences between the reported numbers
