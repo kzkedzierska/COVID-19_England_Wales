@@ -8,7 +8,7 @@ tags:
 categories:
 - data_viz
 date: "2020-04-20"
-lastmod: "2020-06-04"
+lastmod: "2020-07-24"
 featured: false
 draft: false
 
