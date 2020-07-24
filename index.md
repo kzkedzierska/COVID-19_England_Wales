@@ -1,7 +1,7 @@
 ---
 title: "COVID-19 mortality in England and Wales"
 subtitle: "Based on the ONS data"
-summary: Visualisation of the mortality data in Endland and Wales during COVID-19 pandemic.
+summary: Visualisation of the mortality data in England and Wales during COVID-19 pandemic.
 authors:
 - admin
 tags:
