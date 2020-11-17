@@ -20,13 +20,15 @@ As probably many of the data scientist, I wanted to ease my anxiety caused by th
 
 I am a **computational biologist** and all the plots I am making here are just *observations*. I am not claiming any conclusions, nor do I do any predictions. All the code is open source, and free for anyone to use, available on [github](https://github.com/kzkedzierska/COVID-19_England_Wales).
 
-Also, very warm thanks to [Kaspar](https://kasparmartens.rbind.io/) for his help with decisions regarding color schemes and his helpful advice.
+Also, very warm thanks to [Kaspar](https://kasparmartens.rbind.io/) for his help with decisions regarding color schemes and advice.
+
+If I would to choose the most useful output of this whole notebook I would say functions to read in the ONS data. And trying to figure out how to deal with ONS constantly changing the file formats and organization of the data. :D
 
 ## Motivation
 
 I decided to look into the mortality rates because I wanted to put the numbers reported by the government in some context. My first question was whether the deaths reported as COVID-19 deaths were a subset of deaths one could expect to see this year? How much COVID-19 increases the death toll? And finally, how does the age distribution of fatalities look?
 
-The data I plotted below shades a bit of light on those topics, but for a more in-depth answer, I am afraid we will have to wait for long. Nevertheless, I still think the following is quite interesting. If not for others, then for the sole reason of looking at the data in almost real-time.
+The data I plotted below shades a bit of light on those topics, but for a more in-depth answer, we will have to wait. I expect many PhD thesis investigating the socioeconomic impact of the pandemic, causes for mortality and the differences between countries and much more.  Nevertheless, I still think the following is quite interesting. If not for others, then for the sole reason of looking at the data in almost real-time.
 
 ## Setup 
 
@@ -46,7 +48,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 # Update date of the data
-data_up_to <- ymd("2020-07-10")
+data_up_to <- ymd("2020-11-06")
 ```
 ## Data 
 
@@ -56,9 +58,9 @@ Data is coming from [Office for National Statistics, *Deaths registered weekly i
 
 ### Weekly figures 
 
-Both 2020 and 2019 figures for comparison of the trend. The 2020 will be changed each week, while 2019 remains stable. 
+Data comes from two spreadsheet - 2020 (new data) and 2019 to see the trend. The 2020 will be changed each week, while 2019 remains stable. 
 
-*Note:* Unfortunately due to formatting of the data the following code is not entirely reproducible as there are parts of it that would have to be adjusted with each reiteration of the spreadsheet. In theory the code should be backward compatible, but I haven't checked that in practice. 
+*Note:* Unfortunately due to formatting of the data the following code is not ~entirely~ reproducible as there are parts of it that would have to be adjusted with each reiteration of the spreadsheet. ~In theory the code should be backward compatible, but I haven't checked that in practice.~ The spreadsheet is almost as variable as the data. 
 
 #### 2019 baseline
 
@@ -83,7 +85,9 @@ df_2019 <-
 df_2015 <-
   read_xls("./data/2015/publishedweek2015.xls", 
            sheet = "Weekly Figures 2015", skip = 3)[c(4,5,9),-c(1)] %>%
-  mutate(value = c("total_deaths", "total_deaths_ave5", "respiratory_deaths")) %>%
+  mutate(value = c("total_deaths", 
+                   "total_deaths_ave5", 
+                   "respiratory_deaths")) %>%
   mutate_at(vars(-value), as.integer) %>% 
   pivot_longer(names_to = "week", 
                values_to = "number_of_deaths", -value) %>%
@@ -97,7 +101,7 @@ df_2015 <-
 This spreadsheet is the one that changes the most and includes increasingly more information. 
 
 ```{r, warning=FALSE, message=FALSE}
-current_2020_spreadsheet <- "./data/2020/publishedweek282020.xlsx"
+current_2020_spreadsheet <- "./data/2020/publishedweek452020.xlsx"
 sheets_2020 <- readxl::excel_sheets(current_2020_spreadsheet)
 
 df_2020_ <- 
@@ -130,6 +134,8 @@ first_covid_week <-
   pull(week) %>% 
   head(n = 1) %>%
   as.numeric()
+
+second_covid_week <- 36
 ```
 
 Next, joining the 2020 data with 2019 baseline.
@@ -187,13 +193,19 @@ place_of_death_long <-
 ```
 
 
+
 ```{r, warning=FALSE, message=FALSE}
-actual_vs_reported <-
-  read_xlsx(current_2020_spreadsheet, 
-            sheet = sheets_2020[str_detect(sheets_2020, 
-                                           regex("E&W comparisons", 
-                                                 ignore_case = TRUE))], skip = 4, 
-            col_types = c("date", rep("numeric", 8)))[, 1:9] %>%
+spreadsheet_2020_EW <- "data/2020/publishedweek282020.xlsx"
+sheets_2020_EW <- readxl::excel_sheets(spreadsheet_2020_EW)
+data_up_to_EW <- ymd("2020-07-10")
+
+actual_vs_reported <- 
+  read_xlsx(spreadsheet_2020_EW, 
+            sheet = sheets_2020_EW[str_detect(sheets_2020_EW, 
+                                              regex("E&W comparisons", 
+                                                    ignore_case = TRUE))], 
+            skip = 4, 
+            col_types = c("date", rep("numeric", 8)))[, 1:8] %>%
   filter(!is.na(Date)) %>%
   pivot_longer(names_to = "source",
                values_to = "number_of_deaths",
@@ -205,7 +217,7 @@ actual_vs_reported <-
 age_distribution <- 
   read_xlsx(current_2020_spreadsheet, 
             sheet = sheets_2020[str_detect(sheets_2020, 
-                                           regex("covid-19 .* occurrences", 
+                                           regex("covid-19 - weekly occurrences", 
                                                  ignore_case = TRUE))], 
             skip = 4)[c(7:26,29:48,51:70), -1] %>%
   mutate(sex = c(rep("Both", 20), rep("Males", 20), rep("Females", 20))) %>%
@@ -259,7 +271,7 @@ age_distribution_all <-
 
 ### All weekly deaths in England and Wales
 
-It looks like the number of deaths came back to the 5-year average level. Really hopeful there will be no second wave. 
+The number of deaths reported in the news is increasing, and though the data here lags, it looks like the number of deaths is slightly increasing.
 
 ```{r, fig.height=8, fig.width=7}
 total <- 
@@ -270,7 +282,7 @@ total <-
   geom_smooth(data = filter(df_all, 
                             value == "total_deaths_ave5" & year == "2019"),
               color = "grey60", se = FALSE) +
-  facet_zoom(xy = week_ < data_up_to + 1 & week >= first_covid_week,
+  facet_zoom(xy = week_ < data_up_to + 1 & week >= second_covid_week,
              horizontal = FALSE, show.area = FALSE) +
   labs(y = "Number of deaths", 
        title = "Weekly total deaths  [grey = 5 year average]") + 
@@ -281,7 +293,7 @@ total
 
 ### Respiratory deaths
 
-COVID-19 deaths - those with COVID-19 mentioned on the death certificate and those without, result in higher than last year numbers of respiratory deaths. Thankfully, at this time it looks like the first wave has passed.
+COVID-19 deaths - those with COVID-19 mentioned on the death certificate and those without, result in higher than last year numbers of respiratory deaths. The numbers seem to be increasing and with a slightly higher average daily total than the one reported in the news.
 
 ```{r, fig.height=8, fig.width=7}
 upper_limit <-
@@ -296,7 +308,7 @@ respiratory <-
              group = year, color = year, shape = year)) +
   geom_point() +
   geom_smooth(se = FALSE, span = 0.3) +
-  facet_zoom(xy = week_ < data_up_to + 1 & week >= first_covid_week, 
+  facet_zoom(xy = week_ < data_up_to + 1 & week >= second_covid_week, 
              horizontal = FALSE, show.area = FALSE) +
   scale_color_aaas() +
   labs(y = "Number of deaths", title = "Weekly respiratory deaths") + 
@@ -305,7 +317,7 @@ respiratory <-
 respiratory
 ```
 
-However, the total number of COVID-19 deaths has already put the total number of respiratory deaths above the total 2019 respiratory deaths. 
+However, the total number of COVID-19 deaths has already put the total number of respiratory deaths above the total 2019 respiratory deaths. And its increasing again. 
 
 ```{r, fig.height=8, fig.width=7}
 cumulative_respiratory <- 
@@ -318,7 +330,7 @@ cumulative_respiratory <-
   ggplot(aes(x = week_, y = cum, color = year, shape = year)) +
   geom_point() +
   geom_smooth(se = FALSE) +
-  facet_zoom(xy = week_ < data_up_to + 7 & week >= first_covid_week, 
+  facet_zoom(xy = week_ < data_up_to + 7 & week >= second_covid_week, 
              horizontal = FALSE, show.area = FALSE) +
   scale_color_aaas() +
   labs(y = "Number of deaths", shape = "Year",
@@ -329,7 +341,9 @@ cumulative_respiratory
 
 COVID-19 deaths increase exponentially, while the other respiratory deaths seem to be stable.
 
-As per [BBC plot](https://www.bbc.co.uk/news/health-52361519) I added the 2015 respiratory deaths, when the worst flu outbreak took place.
+As per [BBC plot](https://www.bbc.co.uk/news/health-52361519) I added the 2015 respiratory deaths, when the worst flu outbreak took place as reference.
+
+Here again, we see an increase in number of deaths.
 
 ```{r}
 df_2020_ %>%
@@ -348,7 +362,7 @@ df_2020_ %>%
   geom_point() +
   geom_smooth(se = FALSE, span = 0.3) +
   scale_color_uchicago() +
-  facet_zoom(xy = week_ < data_up_to + 7 & week >= first_covid_week, 
+  facet_zoom(xy = week_ < data_up_to + 7 & week >= second_covid_week, 
              horizontal = FALSE, show.area = FALSE) +
   labs(y = "Number of deaths", title = "Weekly respiratory deaths",
        color = "Cause of death", shape = "Cause of death") + 
@@ -365,6 +379,8 @@ ggsave("./plots/up_to200327.png")
 ### Excess deaths - proxy for all COVID-19 related deaths
 
 In this plot, I am looking at the difference in total number of deaths reported in the period since the first COVID-19 related death was reported and the 5-year average. 
+
+While we see that we entered the increasing phase, the increase seem to be less steaper. 
 
 ```{r}
 col_scheme <- pal_uchicago()(5)[c(1:2,5)]
@@ -416,7 +432,7 @@ excess_plt
 ggsave(plot = excess_plt, filename = "featured.png", width = 7, height = 5)
 ```
 
-England & Wales has moved **past the peak**. Up to `r format(data_up_to, '%b, %d')` at least **`r format(all_excess_deaths, big.mark =" ")` more people died** when compared to the 5 year average. This means that **`r sprintf("%.1f%%", 100 * fraction_excess)` of all deaths this year were directly, or indirectly caused by COVID-19** (taking the excess mortality over the 5 year average as best proxy for number of deaths as a result of pandemic).
+England & Wales has enetered **the second wave**. Up to `r format(data_up_to, '%b, %d')` at least **`r format(all_excess_deaths, big.mark =" ")` more people died** when compared to the 5 year average. This means that **`r sprintf("%.1f%%", 100 * fraction_excess)` of all deaths this year were directly, or indirectly caused by COVID-19** (taking the excess mortality over the 5 year average as best proxy for number of deaths as a result of pandemic).
 
 
 ### Place of death
@@ -481,7 +497,9 @@ _My speculation:_ Was that the case because no test was carried out? I find it u
 
 Also, as have been already reported, the outbreak in care homes started later, hence we are seeing an increase in COVID-19 related deaths in those facilities. 
 
-2) We see that number of deaths with no mention of COVID-19 decreased in the hospitals and increased in recent weeks. I hypothesize it potentially can be explained by increase in deaths in other places, less road accidents and less scheduled medical interventions. And now, that lockdown has been lifted we potentially see the increase in accidents. 
+2) We see that number of deaths with no mention of COVID-19 decreased in the hospitals and increased in recent weeks. I hypothesize it potentially can be explained by increase in deaths in other places, less road accidents and less scheduled medical interventions. When the lockdown has been lifted we could potentially see the increase in accidents. 
+
+However, there are many other potential reasons for the increase in deaths this year. Some of them can include impaired mental health.
 
 **Note:** _Many thanks to [German](https://twitter.com/not_a_reptiloid) (and [David Spiegelhalter plots](https://twitter.com/d_spiegel/status/1255148797333655552/photo/1)) for making me realise a mistake in the earlier iteration of the following plot!_
 
@@ -517,14 +535,13 @@ place_of_death_long %>%
 
 ### Differences between the reported numbers
 
-The numbers reported by the government are lower than the actual number of deaths each day. Some of that comes from the delay in confirming the cause of death. 
+The numbers reported by the government are lower than the actual number of deaths each day. Some of that comes from the delay in confirming the cause of death. Because ONS changed the organisation of the data the discrepancies in the data can be only shown up to `r format(data_up_to_EW, '%d %b')`.
 
 All the comparisons between previous years (in the earlier parts of this notebook) are done based on figures from **ONS deaths by date of registration – registered by `r format(data_up_to, '%d %b')`** set for compatibility with earlier datasets. 
 
 ```{r, fig.width=13, fig.height=7}
 col_scheme <- c("#E18727", "#849460", "#56603F", "#20854E")
 names(col_scheme) <- unique(actual_vs_reported$source)[1:4]
-
 label_postions <- 
   actual_vs_reported %>% 
   filter(source %in% names(col_scheme)) %>%
@@ -536,8 +553,11 @@ label_postions <-
   ungroup() %>%
   filter(Date == lubridate::ymd("2020/03/6")) %>%
   arrange(-max) %>%
-  mutate(fixed_position_cum = 1.15 * max(max) - 0.07 * max(max) * 1:length(col_scheme),
-         fixed_position_daily = 1.15 * max(max_on_day) - 0.07 * max(max_on_day) * 1:length(col_scheme))
+  mutate(fixed_position_cum = 1.15 * max(max) - 
+           0.07 * max(max) * 1:length(col_scheme),
+         fixed_position_daily = 1.15 * max(max_on_day) - 
+           0.07 * max(max_on_day) * 1:length(col_scheme))
+
 
 discrepancies <-
   actual_vs_reported %>%
@@ -558,12 +578,10 @@ discrepancies <-
         legend.position = "none") +
   labs(color = "Source", shape = "Source", 
        y = "Cummulative number of deaths",
-       title = "Delays in the reported numbers of COVID-19 deaths in England and Wales")
+       title = paste0("Delays in the reported numbers ",
+                      "of COVID-19 deaths in England and Wales"))
 
 discrepancies
-# (discrepancies + theme(legend.position = "none") + labs(title = "[linear scale]")) / 
-#   (discrepancies + scale_y_log10() + labs(title = "[log scale]")) + 
-#   plot_annotation(title =  "Discrepancies between the reported numbers")
 ```
 
 Looking at the daily death rates it becomes clear that (1) data is very noisy and (2) there is a significant lag in the data. 
@@ -596,7 +614,7 @@ actual_vs_reported %>%
 
 ### Age distribution
 
-Looking at the deaths, Males are more affected than Females. How this plot looks like for cases? I.e. are men more susceptible? 
+Looking at the deaths, Males are more affected than Females. How this plot looks like for cases? I.e. are men more susceptible? For that I am still looking a proper dataset. 
 
 I also wanted to compare the COVID-19 age and sex distribution with the UK population structure. I ended up comparing it to even more adequate data - to the deaths occurring in UK this year, before COVID-19. This will allow to put the age structure of COVID-19 into context.
 
