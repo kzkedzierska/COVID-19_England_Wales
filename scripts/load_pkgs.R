@@ -57,7 +57,9 @@ check <- function(pkgs, github = FALSE) {
   }
 }
 
-load_cran <- function(cran_pkgs, verbose = 0) {
+load_cran <- function(cran_pkgs, verbose = 0, cran_mirror = "https://cloud.r-project.org") {
+  # add cran mirror
+  options(repos = c(CRAN = cran_mirror))
   # set the parameters for verbose output
   if (verbose == 0) {
     verbose = FALSE
