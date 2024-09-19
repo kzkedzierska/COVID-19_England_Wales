@@ -23,7 +23,7 @@ I am a **computational biologist** and all the plots I am making here are just *
 
 Also, very warm thanks to [Kaspar](https://kasparmartens.rbind.io/) for his help with decisions regarding color schemes and advice.
 
-If I would to choose the most useful output of this whole notebook I would say functions to read in the ONS data. And trying to figure out how to deal with ONS constantly changing the file formats and organization of the data. :D
+If I would to choose the most useful output of this whole notebook I would say functions to read in the ONS data. And trying to figure out how to deal with ONS constantly changing the file formats and organization of the data. 
 
 ## Motivation
 
@@ -41,10 +41,12 @@ Loading up the necessary packages (installing them if they are missing). Setting
 #| message: false
 #| error: false
 # Load packages
-cran_pkgs <- c("tidyverse", "ggsci", "patchwork", 
-               "readxl", "knitr", "ggforce", "lubridate")
-source("scripts/load_pkgs.R")
-load_packages(cran_pkgs = cran_pkgs)
+library(tidyverse)
+library(readxl)
+library(lubridate)
+library(patchwork)
+library(ggsci)
+library(ggforce)
 
 # Set defaults for plotting
 theme_set(theme_bw() + theme(legend.position = "bottom"))
