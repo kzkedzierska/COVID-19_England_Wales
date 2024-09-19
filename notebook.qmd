@@ -4,7 +4,7 @@ subtitle: "Based on the ONS data"
 author: Kasia Kedzierska
 date: "2020-11-18"
 execute: 
-  freeze: auto
+  freeze: true
 format:
   html:
     theme: paper
